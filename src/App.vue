@@ -14,10 +14,17 @@
     </q-header>
 
     <q-page-container>
-      <div id="app">
+      <div class="row">
+        <div class="col-lg-3"></div>
+        <div class="col-lg-6 col-12">
+          <router-view />
 
-      <router-view />
-    </div>
+        </div>
+        <div class="col-lg-3"></div>
+
+      </div>
+
+
 
     </q-page-container>
 

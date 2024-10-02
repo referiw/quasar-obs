@@ -12,9 +12,9 @@
         </div>
       </q-card-section>
 
-      <q-card-section v-if="connected">
+      <q-card-section class="q-pa-0" v-if="connected">
         <div class="q-ma-sm row">
-          <div class="col-lg-4 ">
+          <div class="col-12 col-sm-4" style="min-width:100px ;">
             <q-card
               v-for="scene in scenes"
               :key="scene.value"
@@ -27,18 +27,52 @@
               </q-card-section>
             </q-card>
           </div>
-          <div class="col-lg-7 ">
+          <!-- <div class="col-1"></div> -->
+          <div class="col-12 col-sm-8">
             <q-card class="q-ma-sm" v-for="element in sceneElements" :key="element.inputName">
               <q-card-section>
-                <div class="row justify-between " >
-                  <div class=""> <q-input standout="bg-teal text-white"                   v-if="element.inputType === 'text'"
-                    v-model="element.inputValue" :label='element.inputName' /></div>
-                  <div class="" v-if="element.inputType != 'text'">                <div class="text-subtitle1">{{ element.inputName }}</div>
-                </div>
-                  <div class=" items-center q-ml-md q-my-sm"><q-btn                   v-if="element.inputType === 'text'"
-                   color="primary" icon="check"  @click="updateTextInput(element)"
-                   /></div>
+                <div class="row justify-between" >
+                  <div class="col-8" v-if="element.inputType === 'text'"> <q-input standout="bg-teal text-white"
+                    v-model="element.inputValue" :label='element.inputName' />
 
+                  </div>
+                  <!-- 如果是文本，则渲染到input框 -->
+                  <div class="col-8" v-if="element.inputType==='other'">  <div class="text-subtitle1">{{ element.inputName }}</div>
+                  <!-- 如果是其他，则渲染为文字 -->
+
+                  </div>
+
+
+
+                </div>
+                <div class="row flex-center"  v-if="element.inputType === 'score'">
+                  <div class="col-3 flex justify-center">
+                    <q-btn outline  color="primary" label="-1" @click="element.inputValue-=1;updateTextInput(element)"/>
+                  </div>
+
+                  <div class="col-6 items-center q-sm-a-md q-my-sm">
+                    <!-- <q-pagination
+                      v-if="element.inputType === 'score'"
+                      v-model="element.inputValue"
+                      :max="5"
+                      input
+                      input-class="text-orange-10"
+                       @click="updateTextInput(element)"
+                      /> -->
+                      <q-input
+                          v-model="element.inputValue"
+                          :label="element.inputName"
+                          filled
+                          class=""
+                          @update:model-value="updateTextInput(element)"
+                        />
+                    <q-btn class="" v-if="element.inputType === 'text'"
+                    color="primary" icon="check"  @click="updateTextInput(element)"/>
+                  </div>
+                  <div class="col-3 flex justify-center">
+                    <q-btn outline  color="primary" label="+1" @click="element.inputValue+=1;updateTextInput(element)" />
+
+                  </div>
 
                 </div>
 
@@ -108,19 +142,30 @@ export default defineComponent({
 
         sceneElements.value = await Promise.all(sceneItems.map(async (item) => {
           const { sourceName, inputKind } = item;
+          console.log(inputKind);
 
-          if (inputKind === 'text_gdiplus_v2' ) {
+          if (inputKind === 'text_gdiplus_v2' | inputKind === 'text_gdiplus_v3' |inputKind === 'text_ft2_source_v2') {
 
             const { inputSettings } = await obs.call('GetInputSettings', { inputName: sourceName });
             // console.log(inputSettings);
-
-            return {
+            //如果内容为纯数字，则判断为比分；否则为玩家id
+            if(/^\d+$/.test(inputSettings.text)){
+              return {
+              inputName: sourceName,
+              inputType: 'score',
+              inputValue: Number(inputSettings.text),
+              };
+            }
+            else{
+              return {
               inputName: sourceName,
               inputType: 'text',
               inputValue: inputSettings.text,
-            };
+              };
+            }
+
           }
-          return { inputName: sourceName, inputType: null };
+          return { inputName: sourceName, inputType: 'other' };
         }));
       } catch (error) {
         console.error('获取场景元素失败:', error);
@@ -132,7 +177,7 @@ export default defineComponent({
       try {
         await obs.call('SetInputSettings', {
           'inputName': element.inputName,
-          'inputSettings': { text: element.inputValue },
+          'inputSettings': { 'text': String(element.inputValue) },
         });
         console.log(`Updated text for ${element.inputName}`);
       } catch (error) {
@@ -157,6 +202,9 @@ export default defineComponent({
 </script>
 
 <style scoped>
+.centered-input .q-field__native {
+  text-align: center; /* 将文本居中对齐 */
+}
 .q-page {
   display: flex;
   justify-content: center;
