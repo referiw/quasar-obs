@@ -1,89 +1,81 @@
 <template>
   <q-page class="flex flex-center">
-    <q-card>
-      <q-card-section>
-        <div class="text-h6">OBS WebSocket 控制</div>
-      </q-card-section>
+  <q-card>
+    <q-card-section>
+      <div class="text-h6">OBS WebSocket 控制</div>
+    </q-card-section>
 
-      <q-card-section v-if="!connected">
-        <q-input v-model="ip" label="IP 地址" />
-        <q-input v-model="password" label="密码" type="password" />
-        <div class="row flex-center q-mt-md">        <q-btn @click="connectToOBS" label="连接" color="primary" />
+    <q-card-section v-if="!connected">
+      <q-input v-model="ip" label="IP 地址" />
+      <q-input v-model="password" label="密码" type="password" />
+      <div class="row flex-center q-mt-md">
+        <q-btn @click="connectToOBS" label="连接" color="primary" />
+      </div>
+    </q-card-section>
+
+    <q-card-section class="q-pa-0" v-if="connected">
+      <div class="q-ma-sm row">
+        <div class="col-12 col-sm-4" style="min-width:100px;">
+          <q-card
+            v-for="scene in scenes"
+            :key="scene.value"
+            @click="switchScene(scene.value)"
+            class="cursor-pointer q-ma-sm"
+            :class="{ 'bg-primary text-white': scene.value === selectedScene }"
+          >
+            <q-card-section>
+              <div class="text-h6">{{ scene.label }}</div>
+            </q-card-section>
+          </q-card>
         </div>
-      </q-card-section>
-
-      <q-card-section class="q-pa-0" v-if="connected">
-        <div class="q-ma-sm row">
-          <div class="col-12 col-sm-4" style="min-width:100px ;">
-            <q-card
-              v-for="scene in scenes"
-              :key="scene.value"
-              @click="switchScene(scene.value)"
-              class="cursor-pointer q-ma-sm"
-              :class="{ 'bg-primary text-white': scene.value === selectedScene }"
-            >
-              <q-card-section>
-                <div class="text-h6">{{ scene.label }}</div>
-              </q-card-section>
-            </q-card>
-          </div>
-          <!-- <div class="col-1"></div> -->
-          <div class="col-12 col-sm-8">
-            <q-card class="q-ma-sm" v-for="element in sceneElements" :key="element.inputName">
-              <q-card-section>
-                <div class="row justify-between" >
-                  <div class="col-8" v-if="element.inputType === 'text'"> <q-input standout="bg-teal text-white"
+        <div class="col-12 col-sm-8">
+          <q-card class="q-ma-sm" v-for="element in sceneElements" :key="element.inputName">
+            <q-card-section>
+              <div class="row justify-between">
+                <div class="col-8" v-if="element.inputType === 'text'">
+                  <q-input standout="bg-teal text-white"
                     v-model="element.inputValue" :label='element.inputName' />
 
-                  </div>
-                  <!-- 如果是文本，则渲染到input框 -->
-                  <div class="col-8" v-if="element.inputType==='other'">  <div class="text-subtitle1">{{ element.inputName }}</div>
-                  <!-- 如果是其他，则渲染为文字 -->
-
-                  </div>
-
-
-
                 </div>
-                <div class="row flex-center"  v-if="element.inputType === 'score'">
+                <!-- 如果是文本，则渲染到input框 -->
+
+                <div class="col-8" v-if="element.inputType==='other'">
+                  <div class="text-subtitle1">{{ element.inputName }}</div>
+                </div>
+
+                <!-- 如果是其他，则渲染为文字 -->
+
+                <div class="col-4 flex flex-center q-pl-md q-pr-0" v-if="element.inputType === 'text'">
+                  <q-btn color="primary" icon="check" @click="updateTextInput(element)" />
+                </div>
+                <div class="row flex-center" v-if="element.inputType === 'score'">
                   <div class="col-3 flex justify-center">
-                    <q-btn outline  color="primary" label="-1" @click="element.inputValue-=1;updateTextInput(element)"/>
+                    <q-btn outline color="primary" label="-1" @click="element.inputValue-=1;updateTextInput(element)"/>
                   </div>
 
                   <div class="col-6 items-center q-sm-a-md q-my-sm">
-                    <!-- <q-pagination
-                      v-if="element.inputType === 'score'"
+                    <q-input
                       v-model="element.inputValue"
-                      :max="5"
-                      input
-                      input-class="text-orange-10"
-                       @click="updateTextInput(element)"
-                      /> -->
-                      <q-input
-                          v-model="element.inputValue"
-                          :label="element.inputName"
-                          filled
-                          class=""
-                          @update:model-value="updateTextInput(element)"
-                        />
-                    <q-btn class="" v-if="element.inputType === 'text'"
-                    color="primary" icon="check"  @click="updateTextInput(element)"/>
+                      :label="element.inputName"
+                      filled
+                      @update:model-value="updateTextInput(element)"
+                    />
+                    <q-btn v-if="element.inputType === 'text'" color="primary" icon="check" @click="updateTextInput(element)"/>
                   </div>
+
                   <div class="col-3 flex justify-center">
-                    <q-btn outline  color="primary" label="+1" @click="element.inputValue+=1;updateTextInput(element)" />
-
+                    <q-btn outline color="primary" label="+1" @click="element.inputValue+=1;updateTextInput(element)" />
                   </div>
-
                 </div>
-
-              </q-card-section>
-
-            </q-card>
-          </div>
+              </div>
+            </q-card-section>
+          </q-card>
         </div>
-      </q-card-section>
-    </q-card>
-  </q-page>
+      </div>
+    </q-card-section>
+  </q-card>
+</q-page>
+
 </template>
 
 <script>
