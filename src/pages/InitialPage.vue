@@ -1,100 +1,124 @@
 <template>
   <q-page class="flex flex-center">
-  <q-card>
-    <q-card-section>
-      <div class="row flex flex-center">      <div class="text-h6">OBS WebSocket 控制</div>
-    </div>
-    </q-card-section>
-        <q-separator />
-
-    <q-card-section v-if="!connected">
-      <q-input v-model="ip" label="IP 地址" />
-      <q-input v-model="password" label="密码" type="password" />
-      <div class="row flex-center q-mt-md">
-        <q-btn @click="connectToOBS" label="连接" color="primary" />
-      </div>
-    </q-card-section>
-
-    <q-card-section class="q-pa-0" v-if="connected">
-      <div class="row q-ma-sm flex flex-center">
-            <q-btn
-          :loading="loading"
-          :color="recording ? 'negative' : 'positive'"
-          @click="toggleRecording"
-          class="q-mt-0"
-        >
-          {{ recording ? '停止录制' : '开始录制' }}
-        </q-btn>
-      </div>
-      <div class="q-ma-sm row">
-        <div class="col-12 col-sm-4" style="min-width:100px;">
-          <q-card
-            v-for="scene in scenes"
-            :key="scene.value"
-            @click="switchScene(scene.value)"
-            class="cursor-pointer q-ma-sm"
-            :class="{ 'bg-primary text-white': scene.value === selectedScene }"
-          >
-            <q-card-section>
-              <div class="text-h6">{{ scene.label }}</div>
-            </q-card-section>
-          </q-card>
+    <q-card>
+      <q-card-section>
+        <div class="row flex flex-center">
+          <div class="text-h6">OBS WebSocket 控制</div>
         </div>
-        <div class="col-12 col-sm-8">
-          <q-card class="q-ma-sm" v-for="element in sceneElements" :key="element.inputName">
-            <q-card-section>
-              <div class="row justify-between">
-                <div class="col-8" v-if="element.inputType === 'text'">
-                  <q-input standout="bg-teal text-white"
-                    v-model="element.inputValue" :label='element.inputName' />
+      </q-card-section>
+      <q-separator />
 
-                </div>
-                <!-- 如果是文本，则渲染到input框 -->
+      <q-card-section v-if="!connected">
+        <q-input v-model="ip" label="IP 地址" />
+        <q-input v-model="password" label="密码" type="password" />
+        <div class="row flex-center q-mt-md">
+          <q-btn @click="connectToOBS" label="连接" color="primary" />
+        </div>
+      </q-card-section>
 
-                <div class="col-8" v-if="element.inputType==='other'">
-                  <div class="text-subtitle1">{{ element.inputName }}</div>
-                </div>
+      <q-card-section class="q-pa-0" v-if="connected">
+        <div class="row q-ma-sm flex flex-center">
+          <q-btn
+            :loading="loading"
+            :color="recording ? 'negative' : 'positive'"
+            @click="toggleRecording"
+            class="q-mt-0"
+          >
+            {{ recording ? '停止录制' : '开始录制' }}
+          </q-btn>
+        </div>
+          <q-tabs
 
-                <!-- 如果是其他，则渲染为文字 -->
+            v-model="selectedScene"
+            active-color="primary"
+            class="col-12 col-sm-4"
+            style="min-width: 100px;"
+            @update:model-value="switchScene"
+          >
+            <q-tab
+              v-for="scene in scenes"
+              :key="scene.value"
+              :name="scene.value"
+              :label="scene.label"
+            />
+          </q-tabs>
+          <!-- <div class="col-12 col-sm-8"> -->
+            <q-tab-panels
+                v-model="selectedScene"
+                animated
+                swipeable
+                transition-prev="jump-up"
+                transition-next="jump-up"
+              >
+              <q-tab-panel v-for="scene in scenes"
+              :key="scene.value"
+              :name="scene.value"
 
-                <div class="col-4 flex flex-center q-pl-md q-pr-0" v-if="element.inputType === 'text'">
-                  <q-btn color="primary" icon="check" @click="updateTextInput(element)" />
-                </div>
-                <div class="row flex-center" v-if="element.inputType === 'score'">
-                  <div class="col-3 flex justify-center">
-                    <q-btn outline color="primary" label="-1" @click="element.inputValue-=1;updateTextInput(element)"/>
-                  </div>
+              >
+              <div class=""  v-if="sceneElements!=[]"
+              >
 
-                  <div class="col-6 items-center q-sm-a-md q-my-sm">
+            </div>
+                <q-card
+                class="q-ma-sm"
+                v-for="element in sceneElements"
+                :key="element.inputName"
+                  >
+              <q-card-section>
+                <div class="row justify-between">
+                  <div class="col-8" v-if="element.inputType === 'text'">
                     <q-input
+                      standout="bg-teal text-white"
                       v-model="element.inputValue"
                       :label="element.inputName"
-                      filled
-                      @update:model-value="updateTextInput(element)"
                     />
-                    <q-btn v-if="element.inputType === 'text'" color="primary" icon="check" @click="updateTextInput(element)"/>
                   </div>
 
-                  <div class="col-3 flex justify-center">
-                    <q-btn outline color="primary" label="+1" @click="element.inputValue+=1;updateTextInput(element)" />
+                  <div class="col-8" v-if="element.inputType === 'other'">
+                    <div class="text-subtitle1">{{ element.inputName }}</div>
                   </div>
-                </div>
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
-      </div>
-    </q-card-section>
-  </q-card>
-</q-page>
 
+                  <div class="col-4 flex flex-center q-pl-md q-pr-0" v-if="element.inputType === 'text'">
+                    <q-btn color="primary" icon="check" @click="updateTextInput(element)" />
+                  </div>
+                  <div class="row flex-center" v-if="element.inputType === 'score'">
+                    <div class="col-3 flex justify-center">
+                      <q-btn outline color="primary" label="-1" @click="element.inputValue-=1;updateTextInput(element)" />
+                    </div>
+
+                    <div class="col-6 items-center q-sm-a-md q-my-sm">
+                      <q-input
+                        v-model="element.inputValue"
+                        :label="element.inputName"
+                        filled
+                        @update:model-value="updateTextInput(element)"
+                      />
+                    </div>
+
+                    <div class="col-3 flex justify-center">
+                      <q-btn outline color="primary" label="+1" @click="element.inputValue+=1;updateTextInput(element)" />
+                    </div>
+                  </div>
+                  </div>
+                  </q-card-section>
+                </q-card>
+              </q-tab-panel>
+
+
+            </q-tab-panels>
+
+
+        <!-- </div> -->
+      </q-card-section>
+    </q-card>
+  </q-page>
 </template>
 
 <script>
 import { ref } from 'vue';
 import { defineComponent } from 'vue';
 import OBSWebSocket from 'obs-websocket-js';
-import { QPage, QCard, QCardSection, QInput, QBtn } from 'quasar';
+import { QPage, QCard, QCardSection, QInput, QBtn, QTabs, QTab } from 'quasar';
 
 export default defineComponent({
   name: 'IndexPage',
@@ -103,7 +127,9 @@ export default defineComponent({
     QCard,
     QCardSection,
     QInput,
-    QBtn
+    QBtn,
+    QTabs,
+    QTab
   },
   setup() {
     const ip = ref('');
@@ -126,12 +152,12 @@ export default defineComponent({
         scenes.value = sceneList.map(scene => ({ label: scene.sceneName, value: scene.sceneName }));
         console.log('Connected and scenes fetched:', scenes.value);
         checkRecordingStatus();
-        //尝试获取录制状态
       } catch (error) {
         console.error('连接失败:', error);
         alert('连接失败，请检查IP地址和密码');
       }
     };
+
     const checkRecordingStatus = async () => {
       try {
         const { outputActive } = await obs.call('GetRecordStatus');
@@ -140,6 +166,7 @@ export default defineComponent({
         console.error('获取录制状态失败:', error);
       }
     };
+
     const toggleRecording = async () => {
       loading.value = true;
       try {
@@ -154,6 +181,7 @@ export default defineComponent({
       }
       loading.value = false;
     };
+
     const switchScene = async (sceneName) => {
       try {
         console.log(`Switching to scene: ${sceneName}`);
@@ -172,28 +200,21 @@ export default defineComponent({
 
         sceneElements.value = await Promise.all(sceneItems.map(async (item) => {
           const { sourceName, inputKind } = item;
-          console.log(inputKind);
-
-          if (inputKind === 'text_gdiplus_v2' | inputKind === 'text_gdiplus_v3' |inputKind === 'text_ft2_source_v2') {
-
+          if (inputKind === 'text_gdiplus_v2' || inputKind === 'text_gdiplus_v3' || inputKind === 'text_ft2_source_v2') {
             const { inputSettings } = await obs.call('GetInputSettings', { inputName: sourceName });
-            // console.log(inputSettings);
-            //如果内容为纯数字，则判断为比分；否则为玩家id
-            if(/^\d+$/.test(inputSettings.text)){
+            if (/^\d+$/.test(inputSettings.text)) {
               return {
-              inputName: sourceName,
-              inputType: 'score',
-              inputValue: Number(inputSettings.text),
+                inputName: sourceName,
+                inputType: 'score',
+                inputValue: Number(inputSettings.text),
+              };
+            } else {
+              return {
+                inputName: sourceName,
+                inputType: 'text',
+                inputValue: inputSettings.text,
               };
             }
-            else{
-              return {
-              inputName: sourceName,
-              inputType: 'text',
-              inputValue: inputSettings.text,
-              };
-            }
-
           }
           return { inputName: sourceName, inputType: 'other' };
         }));
@@ -206,8 +227,8 @@ export default defineComponent({
     const updateTextInput = async (element) => {
       try {
         await obs.call('SetInputSettings', {
-          'inputName': element.inputName,
-          'inputSettings': { 'text': String(element.inputValue) },
+          inputName: element.inputName,
+          inputSettings: { text: String(element.inputValue) },
         });
         console.log(`Updated text for ${element.inputName}`);
       } catch (error) {
@@ -236,7 +257,7 @@ export default defineComponent({
 
 <style scoped>
 .centered-input .q-field__native {
-  text-align: center; /* 将文本居中对齐 */
+  text-align: center;
 }
 .q-page {
   display: flex;
