@@ -2,8 +2,10 @@
   <q-page class="flex flex-center">
   <q-card>
     <q-card-section>
-      <div class="text-h6">OBS WebSocket 控制</div>
+      <div class="row flex flex-center">      <div class="text-h6">OBS WebSocket 控制</div>
+    </div>
     </q-card-section>
+        <q-separator />
 
     <q-card-section v-if="!connected">
       <q-input v-model="ip" label="IP 地址" />
@@ -14,6 +16,16 @@
     </q-card-section>
 
     <q-card-section class="q-pa-0" v-if="connected">
+      <div class="row q-ma-sm flex flex-center">
+            <q-btn
+          :loading="loading"
+          :color="recording ? 'negative' : 'positive'"
+          @click="toggleRecording"
+          class="q-mt-0"
+        >
+          {{ recording ? '停止录制' : '开始录制' }}
+        </q-btn>
+      </div>
       <div class="q-ma-sm row">
         <div class="col-12 col-sm-4" style="min-width:100px;">
           <q-card
@@ -101,21 +113,47 @@ export default defineComponent({
     const selectedScene = ref(null);
     const sceneElements = ref([]);
     const obs = new OBSWebSocket();
+    const recording = ref(false);
+    const loading = ref(false);
 
     const connectToOBS = async () => {
       try {
         console.log(`Attempting to connect to ws://${ip.value}:4455 with password: ${password.value}`);
         await obs.connect(`ws://${ip.value}:4455`, password.value);
+
         connected.value = true;
         const { scenes: sceneList } = await obs.call('GetSceneList');
         scenes.value = sceneList.map(scene => ({ label: scene.sceneName, value: scene.sceneName }));
         console.log('Connected and scenes fetched:', scenes.value);
+        checkRecordingStatus();
+        //尝试获取录制状态
       } catch (error) {
         console.error('连接失败:', error);
         alert('连接失败，请检查IP地址和密码');
       }
     };
-
+    const checkRecordingStatus = async () => {
+      try {
+        const { outputActive } = await obs.call('GetRecordStatus');
+        recording.value = outputActive;
+      } catch (error) {
+        console.error('获取录制状态失败:', error);
+      }
+    };
+    const toggleRecording = async () => {
+      loading.value = true;
+      try {
+        if (recording.value) {
+          await obs.call('StopRecord');
+        } else {
+          await obs.call('StartRecord');
+        }
+        recording.value = !recording.value;
+      } catch (error) {
+        console.error('切换录制状态失败:', error);
+      }
+      loading.value = false;
+    };
     const switchScene = async (sceneName) => {
       try {
         console.log(`Switching to scene: ${sceneName}`);
@@ -188,6 +226,9 @@ export default defineComponent({
       connectToOBS,
       switchScene,
       updateTextInput,
+      recording,
+      loading,
+      toggleRecording,
     };
   },
 });
