@@ -115,10 +115,10 @@
 </template>
 
 <script>
-import { ref } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { defineComponent } from 'vue';
 import OBSWebSocket from 'obs-websocket-js';
-import { QPage, QCard, QCardSection, QInput, QBtn, QTabs, QTab } from 'quasar';
+import { QPage, QCard, QCardSection, QInput, QBtn, QTabs, QTab ,useQuasar} from 'quasar';
 
 export default defineComponent({
   name: 'IndexPage',
@@ -141,20 +141,48 @@ export default defineComponent({
     const obs = new OBSWebSocket();
     const recording = ref(false);
     const loading = ref(false);
-
+    const $q = useQuasar()
+    const connectpass = ref(false)
+    let heartbeatInterval = null;
+    let reconnectTimeout = null;
+    const showReconnectNotifs= ()=>{
+          $q.notify({
+            progress: true,
+            message: '连接断开了，尝试重连中',
+            icon: 'refresh',
+            textColor: 'dark',
+            color: 'warning'
+          })
+    }
+    const showConnectOKNotifs= ()=>{
+          $q.notify({
+            message: '连接成功',
+            icon: 'done',
+            textColor: 'light',
+            color: 'positive'
+          })
+    }
+    const showConnectWrongNotifs= ()=>{
+          $q.notify({
+            message: '连接失败，请检查IP地址和密码，被控端OBS是否开启websocket服务',
+            icon: 'report_problem',
+            textColor: 'light',
+            color: 'negative'
+          })
+    }
     const connectToOBS = async () => {
       try {
         console.log(`Attempting to connect to ws://${ip.value}:4455 with password: ${password.value}`);
         await obs.connect(`ws://${ip.value}:4455`, password.value);
-
         connected.value = true;
         const { scenes: sceneList } = await obs.call('GetSceneList');
         scenes.value = sceneList.map(scene => ({ label: scene.sceneName, value: scene.sceneName }));
         console.log('Connected and scenes fetched:', scenes.value);
         checkRecordingStatus();
+        showConnectOKNotifs();
+        startHeartbeat()
       } catch (error) {
-        console.error('连接失败:', error);
-        alert('连接失败，请检查IP地址和密码');
+        showConnectWrongNotifs()
       }
     };
 
@@ -237,6 +265,55 @@ export default defineComponent({
       }
     };
 
+    const startHeartbeat = () => {
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
+      if(true){
+        heartbeatInterval = setInterval(async () => {
+        try {
+          await obs.call('GetVersion');
+          console.log('Heartbeat successful');
+        } catch (error) {
+          console.error('Heartbeat failed:', error);
+          connected.value = false;
+          scheduleReconnect();
+        }
+      }, 5000); // 每5秒发送一次心跳
+      }
+
+    };
+
+    const stopHeartbeat = () => {
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
+    };
+
+    const scheduleReconnect = () => {
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      reconnectTimeout = setTimeout(() => {
+        console.log('Attempting to reconnect...');
+        connectToOBS();
+      }, 2000); // 2秒后尝试重连
+    };
+
+    onMounted(() => {
+
+      obs.on('ConnectionClosed', (err) => {
+        console.log(err.message);
+        if (err.message.includes('Authentication failed.')) {
+
+        }
+        else{
+            console.log('Connection closed');
+            connected.value = false;
+            stopHeartbeat();
+            scheduleReconnect();
+            showReconnectNotifs()
+        }
+      } );
+    });
+    onBeforeUnmount(() => {
+      stopHeartbeat();
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+    });
     return {
       ip,
       password,
