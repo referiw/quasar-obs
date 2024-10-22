@@ -2,6 +2,13 @@
 
 A Quasar Project
 
+Based on obs-websocket-js and quasar
+obsproject/obs-websocket: Remote-control of OBS Studio through WebSocket (github.com)
+obs-websocket-community-projects/obs-websocket-js: Consumes https://github.com/obsproject/obs-websocket
+Project repository referiw/quasar-obs: obs web controller based on obs-websocket-js and quasar. (github.com)
+
+online test www.crychic.icu
+
 ## Install the dependencies
 ```bash
 yarn
